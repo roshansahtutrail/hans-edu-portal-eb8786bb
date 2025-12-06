@@ -10,7 +10,11 @@ import {
   Pencil,
   Trash2,
   Eye,
-  X
+  X,
+  Bell,
+  Settings,
+  Lock,
+  Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,32 +33,47 @@ import {
   deleteFaculty,
   getInquiries,
   deleteInquiry,
+  getNotices,
+  addNotice,
+  updateNotice,
+  deleteNotice,
+  updateAdminPassword,
+  getAdminSession,
   initializeData,
+  canEdit,
+  canDelete,
+  canManageSettings,
   Course,
   Faculty,
   Inquiry,
+  Notice,
+  AdminSession,
 } from "@/lib/data";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-type Tab = "courses" | "faculty" | "inquiries";
+type Tab = "courses" | "faculty" | "inquiries" | "notices" | "settings";
 
 const Admin = () => {
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [session, setSession] = useState<AdminSession | null>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("courses");
   const [courses, setCourses] = useState<Course[]>([]);
   const [faculty, setFaculty] = useState<Faculty[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]);
   
   // Modal states
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [showFacultyModal, setShowFacultyModal] = useState(false);
   const [showInquiryModal, setShowInquiryModal] = useState(false);
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editingFaculty, setEditingFaculty] = useState<Faculty | null>(null);
+  const [editingNotice, setEditingNotice] = useState<Notice | null>(null);
   const [viewingInquiry, setViewingInquiry] = useState<Inquiry | null>(null);
 
   // Form states
@@ -73,10 +92,22 @@ const Admin = () => {
     image: "",
     specialization: "",
   });
+  const [noticeForm, setNoticeForm] = useState({
+    title: "",
+    content: "",
+    type: "notice" as "news" | "notice",
+    isImportant: false,
+  });
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
 
   useEffect(() => {
     initializeData();
-    setIsLoggedIn(isAdminLoggedIn());
+    const adminSession = getAdminSession();
+    setSession(adminSession);
     loadData();
   }, []);
 
@@ -84,13 +115,15 @@ const Admin = () => {
     setCourses(getCourses());
     setFaculty(getFaculty());
     setInquiries(getInquiries());
+    setNotices(getNotices());
   };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminLogin(username, password)) {
-      setIsLoggedIn(true);
-      toast({ title: "Login Successful", description: "Welcome to the admin panel." });
+    const loginSession = adminLogin(username, password);
+    if (loginSession) {
+      setSession(loginSession);
+      toast({ title: "Login Successful", description: `Welcome, ${loginSession.name}!` });
     } else {
       toast({ title: "Login Failed", description: "Invalid credentials.", variant: "destructive" });
     }
@@ -98,7 +131,7 @@ const Admin = () => {
 
   const handleLogout = () => {
     adminLogout();
-    setIsLoggedIn(false);
+    setSession(null);
     toast({ title: "Logged Out", description: "You have been logged out." });
   };
 
@@ -195,7 +228,86 @@ const Admin = () => {
     }
   };
 
-  if (!isLoggedIn) {
+  // Notice handlers
+  const openNoticeModal = (notice?: Notice) => {
+    if (notice) {
+      setEditingNotice(notice);
+      setNoticeForm({
+        title: notice.title,
+        content: notice.content,
+        type: notice.type,
+        isImportant: notice.isImportant,
+      });
+    } else {
+      setEditingNotice(null);
+      setNoticeForm({ title: "", content: "", type: "notice", isImportant: false });
+    }
+    setShowNoticeModal(true);
+  };
+
+  const handleSaveNotice = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingNotice) {
+      updateNotice(editingNotice.id, noticeForm);
+      toast({ title: "Notice Updated" });
+    } else {
+      addNotice(noticeForm);
+      toast({ title: "Notice Added" });
+    }
+    setShowNoticeModal(false);
+    loadData();
+  };
+
+  const handleDeleteNotice = (id: string) => {
+    if (confirm("Are you sure you want to delete this notice?")) {
+      deleteNotice(id);
+      toast({ title: "Notice Deleted" });
+      loadData();
+    }
+  };
+
+  // Password handler
+  const handleUpdatePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({ title: "Error", description: "Passwords do not match.", variant: "destructive" });
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters.", variant: "destructive" });
+      return;
+    }
+    if (session) {
+      const success = updateAdminPassword(session.username, passwordForm.newPassword);
+      if (success) {
+        toast({ title: "Password Updated", description: "Your password has been changed successfully." });
+        setShowPasswordModal(false);
+        setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      } else {
+        toast({ title: "Error", description: "Failed to update password.", variant: "destructive" });
+      }
+    }
+  };
+
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case "super_admin": return "bg-destructive/10 text-destructive";
+      case "editor": return "bg-primary/10 text-primary";
+      case "viewer": return "bg-muted text-muted-foreground";
+      default: return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case "super_admin": return "Super Admin";
+      case "editor": return "Editor";
+      case "viewer": return "Viewer";
+      default: return role;
+    }
+  };
+
+  if (!session) {
     return (
       <div className="min-h-screen gradient-primary flex items-center justify-center p-4">
         <div className="w-full max-w-md">
@@ -233,11 +345,23 @@ const Admin = () => {
                 ← Back to Website
               </Button>
             </div>
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+              <p className="text-xs text-muted-foreground text-center mb-2">Demo Accounts:</p>
+              <div className="space-y-1 text-xs text-muted-foreground">
+                <p><strong>Super Admin:</strong> admin / password123</p>
+                <p><strong>Editor:</strong> editor / editor123</p>
+                <p><strong>Viewer:</strong> viewer / viewer123</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     );
   }
+
+  const userCanEdit = canEdit(session.role);
+  const userCanDelete = canDelete(session.role);
+  const userCanManageSettings = canManageSettings(session.role);
 
   return (
     <div className="min-h-screen bg-secondary/30">
@@ -251,16 +375,25 @@ const Admin = () => {
               </div>
               <div>
                 <h1 className="font-heading font-bold text-foreground">Admin Panel</h1>
-                <p className="text-xs text-muted-foreground">Hans Educational Institute</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground">{session.name}</p>
+                  <span className={cn("text-xs px-2 py-0.5 rounded-full", getRoleBadgeColor(session.role))}>
+                    {getRoleLabel(session.role)}
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               <Button variant="outline" size="sm" onClick={() => navigate("/")}>
                 View Website
               </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowPasswordModal(true)}>
+                <Lock className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Change Password</span>
+              </Button>
               <Button variant="destructive" size="sm" onClick={handleLogout}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
+                <LogOut className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Logout</span>
               </Button>
             </div>
           </div>
@@ -269,17 +402,19 @@ const Admin = () => {
 
       <div className="container-custom py-8">
         {/* Tabs */}
-        <div className="flex gap-2 mb-8 bg-card p-2 rounded-xl border border-border w-fit">
+        <div className="flex gap-2 mb-8 bg-card p-2 rounded-xl border border-border overflow-x-auto">
           {[
-            { id: "courses" as Tab, label: "Courses", icon: BookOpen },
-            { id: "faculty" as Tab, label: "Faculty", icon: Users },
-            { id: "inquiries" as Tab, label: "Inquiries", icon: MessageSquare },
+            { id: "courses" as Tab, label: "Courses", icon: BookOpen, count: courses.length },
+            { id: "faculty" as Tab, label: "Faculty", icon: Users, count: faculty.length },
+            { id: "notices" as Tab, label: "News & Notices", icon: Bell, count: notices.length },
+            { id: "inquiries" as Tab, label: "Inquiries", icon: MessageSquare, count: inquiries.length },
+            ...(userCanManageSettings ? [{ id: "settings" as Tab, label: "Settings", icon: Settings, count: 0 }] : []),
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200",
+                "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap",
                 activeTab === tab.id
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -287,12 +422,14 @@ const Admin = () => {
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
-              <span className={cn(
-                "ml-1 text-xs px-2 py-0.5 rounded-full",
-                activeTab === tab.id ? "bg-primary-foreground/20" : "bg-muted"
-              )}>
-                {tab.id === "courses" ? courses.length : tab.id === "faculty" ? faculty.length : inquiries.length}
-              </span>
+              {tab.count > 0 && (
+                <span className={cn(
+                  "ml-1 text-xs px-2 py-0.5 rounded-full",
+                  activeTab === tab.id ? "bg-primary-foreground/20" : "bg-muted"
+                )}>
+                  {tab.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -302,10 +439,12 @@ const Admin = () => {
           <div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-heading font-bold text-foreground">Manage Courses</h2>
-              <Button onClick={() => openCourseModal()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Course
-              </Button>
+              {userCanEdit && (
+                <Button onClick={() => openCourseModal()}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Course
+                </Button>
+              )}
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {courses.map((course) => (
@@ -318,15 +457,19 @@ const Admin = () => {
                       <span className="text-primary font-semibold">{course.price}</span>
                       <span className="text-muted-foreground">{course.duration}</span>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1" onClick={() => openCourseModal(course)}>
-                        <Pencil className="w-3 h-3 mr-1" />
-                        Edit
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteCourse(course.id)}>
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
+                    {userCanEdit && (
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => openCourseModal(course)}>
+                          <Pencil className="w-3 h-3 mr-1" />
+                          Edit
+                        </Button>
+                        {userCanDelete && (
+                          <Button variant="destructive" size="sm" onClick={() => handleDeleteCourse(course.id)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -339,10 +482,12 @@ const Admin = () => {
           <div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-heading font-bold text-foreground">Manage Faculty</h2>
-              <Button onClick={() => openFacultyModal()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Faculty
-              </Button>
+              {userCanEdit && (
+                <Button onClick={() => openFacultyModal()}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Faculty
+                </Button>
+              )}
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {faculty.map((member) => (
@@ -352,19 +497,81 @@ const Admin = () => {
                     <h3 className="font-heading font-bold text-foreground">{member.name}</h3>
                     <p className="text-sm text-primary font-medium mb-1">{member.designation}</p>
                     <p className="text-xs text-muted-foreground mb-3">{member.specialization}</p>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1" onClick={() => openFacultyModal(member)}>
-                        <Pencil className="w-3 h-3 mr-1" />
-                        Edit
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteFaculty(member.id)}>
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
+                    {userCanEdit && (
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => openFacultyModal(member)}>
+                          <Pencil className="w-3 h-3 mr-1" />
+                          Edit
+                        </Button>
+                        {userCanDelete && (
+                          <Button variant="destructive" size="sm" onClick={() => handleDeleteFaculty(member.id)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Notices Tab */}
+        {activeTab === "notices" && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-heading font-bold text-foreground">Manage News & Notices</h2>
+              {userCanEdit && (
+                <Button onClick={() => openNoticeModal()}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Notice
+                </Button>
+              )}
+            </div>
+            {notices.length === 0 ? (
+              <div className="bg-card rounded-xl border border-border p-12 text-center">
+                <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No notices yet.</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {notices.map((notice) => (
+                  <div key={notice.id} className={cn(
+                    "bg-card rounded-xl border p-4",
+                    notice.isImportant ? "border-accent" : "border-border"
+                  )}>
+                    <div className="flex items-start justify-between mb-2">
+                      <span className={cn(
+                        "text-xs px-2 py-1 rounded-full font-medium",
+                        notice.type === "news" ? "bg-primary/10 text-primary" : "bg-accent/10 text-accent"
+                      )}>
+                        {notice.type === "news" ? "News" : "Notice"}
+                      </span>
+                      {notice.isImportant && (
+                        <span className="text-xs px-2 py-1 bg-destructive/10 text-destructive rounded-full">Important</span>
+                      )}
+                    </div>
+                    <h3 className="font-heading font-bold text-foreground mb-2 line-clamp-2">{notice.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{notice.content}</p>
+                    <p className="text-xs text-muted-foreground mb-3">{new Date(notice.date).toLocaleDateString()}</p>
+                    {userCanEdit && (
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => openNoticeModal(notice)}>
+                          <Pencil className="w-3 h-3 mr-1" />
+                          Edit
+                        </Button>
+                        {userCanDelete && (
+                          <Button variant="destructive" size="sm" onClick={() => handleDeleteNotice(notice.id)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -403,9 +610,11 @@ const Admin = () => {
                             <Button variant="outline" size="sm" onClick={() => handleViewInquiry(inquiry)}>
                               <Eye className="w-3 h-3" />
                             </Button>
-                            <Button variant="destructive" size="sm" onClick={() => handleDeleteInquiry(inquiry.id)}>
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
+                            {userCanDelete && (
+                              <Button variant="destructive" size="sm" onClick={() => handleDeleteInquiry(inquiry.id)}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -414,6 +623,55 @@ const Admin = () => {
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === "settings" && userCanManageSettings && (
+          <div>
+            <h2 className="text-2xl font-heading font-bold text-foreground mb-6">Settings</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-card rounded-xl border border-border p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-foreground">Admin Roles</h3>
+                    <p className="text-sm text-muted-foreground">Manage admin access levels</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="font-medium text-foreground">Super Admin</p>
+                    <p className="text-xs text-muted-foreground">Full access: Create, Edit, Delete all content + Settings</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="font-medium text-foreground">Editor</p>
+                    <p className="text-xs text-muted-foreground">Can Create and Edit content, cannot Delete</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="font-medium text-foreground">Viewer</p>
+                    <p className="text-xs text-muted-foreground">Read-only access to view all content</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-card rounded-xl border border-border p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Lock className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-foreground">Security</h3>
+                    <p className="text-sm text-muted-foreground">Account security options</p>
+                  </div>
+                </div>
+                <Button onClick={() => setShowPasswordModal(true)} className="w-full">
+                  <Lock className="w-4 h-4 mr-2" />
+                  Change Password
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -538,6 +796,78 @@ const Admin = () => {
         </div>
       )}
 
+      {/* Notice Modal */}
+      {showNoticeModal && (
+        <div className="fixed inset-0 bg-foreground/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-heading font-bold text-foreground">
+                {editingNotice ? "Edit Notice" : "Add Notice"}
+              </h3>
+              <button onClick={() => setShowNoticeModal(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveNotice} className="space-y-4">
+              <Input
+                placeholder="Title"
+                value={noticeForm.title}
+                onChange={(e) => setNoticeForm({ ...noticeForm, title: e.target.value })}
+                required
+              />
+              <Textarea
+                placeholder="Content"
+                value={noticeForm.content}
+                onChange={(e) => setNoticeForm({ ...noticeForm, content: e.target.value })}
+                rows={4}
+                required
+              />
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="type"
+                    value="notice"
+                    checked={noticeForm.type === "notice"}
+                    onChange={() => setNoticeForm({ ...noticeForm, type: "notice" })}
+                    className="accent-primary"
+                  />
+                  <span className="text-sm text-foreground">Notice</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="type"
+                    value="news"
+                    checked={noticeForm.type === "news"}
+                    onChange={() => setNoticeForm({ ...noticeForm, type: "news" })}
+                    className="accent-primary"
+                  />
+                  <span className="text-sm text-foreground">News</span>
+                </label>
+              </div>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={noticeForm.isImportant}
+                  onChange={(e) => setNoticeForm({ ...noticeForm, isImportant: e.target.checked })}
+                  className="accent-destructive"
+                />
+                <span className="text-sm text-foreground">Mark as Important</span>
+              </label>
+              <div className="flex gap-3 pt-4">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setShowNoticeModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1">
+                  {editingNotice ? "Update" : "Add"} Notice
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Inquiry Modal */}
       {showInquiryModal && viewingInquiry && (
         <div className="fixed inset-0 bg-foreground/50 flex items-center justify-center z-50 p-4">
@@ -573,6 +903,44 @@ const Admin = () => {
             <Button className="w-full mt-6" onClick={() => setShowInquiryModal(false)}>
               Close
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-foreground/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-heading font-bold text-foreground">Change Password</h3>
+              <button onClick={() => setShowPasswordModal(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleUpdatePassword} className="space-y-4">
+              <Input
+                type="password"
+                placeholder="New Password"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                required
+              />
+              <Input
+                type="password"
+                placeholder="Confirm New Password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                required
+              />
+              <div className="flex gap-3 pt-4">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setShowPasswordModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1">
+                  Update Password
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}
