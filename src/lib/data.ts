@@ -27,6 +27,24 @@ export interface Inquiry {
   date: string;
 }
 
+export interface Notice {
+  id: string;
+  title: string;
+  content: string;
+  type: "news" | "notice";
+  date: string;
+  isImportant: boolean;
+}
+
+export type AdminRole = "super_admin" | "editor" | "viewer";
+
+export interface AdminUser {
+  username: string;
+  password: string;
+  role: AdminRole;
+  name: string;
+}
+
 // Default data
 const defaultCourses: Course[] = [
   {
@@ -120,11 +138,47 @@ const defaultFaculty: Faculty[] = [
   }
 ];
 
+const defaultNotices: Notice[] = [
+  {
+    id: "1",
+    title: "Admission Open for 2024 Batch",
+    content: "We are pleased to announce that admissions are now open for all courses for the 2024 batch. Early bird discount of 10% available until January 31st.",
+    type: "notice",
+    date: new Date().toISOString(),
+    isImportant: true
+  },
+  {
+    id: "2",
+    title: "New AI & Machine Learning Course Launched",
+    content: "Exciting news! We have launched a comprehensive AI & Machine Learning course with hands-on projects and industry mentorship.",
+    type: "news",
+    date: new Date(Date.now() - 86400000).toISOString(),
+    isImportant: false
+  },
+  {
+    id: "3",
+    title: "Campus Placement Drive - TCS",
+    content: "TCS will be conducting a campus placement drive on December 15th. All eligible students are requested to register before December 10th.",
+    type: "notice",
+    date: new Date(Date.now() - 172800000).toISOString(),
+    isImportant: true
+  }
+];
+
+// Default admin users with roles
+const defaultAdminUsers: AdminUser[] = [
+  { username: "admin", password: "password123", role: "super_admin", name: "Super Admin" },
+  { username: "editor", password: "editor123", role: "editor", name: "Content Editor" },
+  { username: "viewer", password: "viewer123", role: "viewer", name: "Staff Viewer" }
+];
+
 // LocalStorage keys
 const COURSES_KEY = "hans_courses";
 const FACULTY_KEY = "hans_faculty";
 const INQUIRIES_KEY = "hans_inquiries";
+const NOTICES_KEY = "hans_notices";
 const ADMIN_SESSION_KEY = "hans_admin_session";
+const ADMIN_USERS_KEY = "hans_admin_users";
 
 // Initialize data if not exists
 export const initializeData = () => {
@@ -136,6 +190,12 @@ export const initializeData = () => {
   }
   if (!localStorage.getItem(INQUIRIES_KEY)) {
     localStorage.setItem(INQUIRIES_KEY, JSON.stringify([]));
+  }
+  if (!localStorage.getItem(NOTICES_KEY)) {
+    localStorage.setItem(NOTICES_KEY, JSON.stringify(defaultNotices));
+  }
+  if (!localStorage.getItem(ADMIN_USERS_KEY)) {
+    localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(defaultAdminUsers));
   }
 };
 
@@ -227,24 +287,96 @@ export const deleteInquiry = (id: string): boolean => {
   return true;
 };
 
+// Notices CRUD
+export const getNotices = (): Notice[] => {
+  const data = localStorage.getItem(NOTICES_KEY);
+  return data ? JSON.parse(data) : defaultNotices;
+};
+
+export const addNotice = (notice: Omit<Notice, "id" | "date">): Notice => {
+  const notices = getNotices();
+  const newNotice = { 
+    ...notice, 
+    id: Date.now().toString(),
+    date: new Date().toISOString()
+  };
+  notices.unshift(newNotice);
+  localStorage.setItem(NOTICES_KEY, JSON.stringify(notices));
+  return newNotice;
+};
+
+export const updateNotice = (id: string, notice: Partial<Notice>): Notice | null => {
+  const notices = getNotices();
+  const index = notices.findIndex(n => n.id === id);
+  if (index === -1) return null;
+  notices[index] = { ...notices[index], ...notice };
+  localStorage.setItem(NOTICES_KEY, JSON.stringify(notices));
+  return notices[index];
+};
+
+export const deleteNotice = (id: string): boolean => {
+  const notices = getNotices();
+  const filtered = notices.filter(n => n.id !== id);
+  if (filtered.length === notices.length) return false;
+  localStorage.setItem(NOTICES_KEY, JSON.stringify(filtered));
+  return true;
+};
+
+// Admin users management
+export const getAdminUsers = (): AdminUser[] => {
+  const data = localStorage.getItem(ADMIN_USERS_KEY);
+  return data ? JSON.parse(data) : defaultAdminUsers;
+};
+
+export const updateAdminPassword = (username: string, newPassword: string): boolean => {
+  const users = getAdminUsers();
+  const index = users.findIndex(u => u.username === username);
+  if (index === -1) return false;
+  users[index].password = newPassword;
+  localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(users));
+  return true;
+};
+
 // Admin session
-export const ADMIN_CREDENTIALS = {
-  username: "admin",
-  password: "password123"
+export interface AdminSession {
+  username: string;
+  role: AdminRole;
+  name: string;
+}
+
+export const getAdminSession = (): AdminSession | null => {
+  const data = localStorage.getItem(ADMIN_SESSION_KEY);
+  return data ? JSON.parse(data) : null;
 };
 
 export const isAdminLoggedIn = (): boolean => {
-  return localStorage.getItem(ADMIN_SESSION_KEY) === "true";
+  return getAdminSession() !== null;
 };
 
-export const adminLogin = (username: string, password: string): boolean => {
-  if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-    localStorage.setItem(ADMIN_SESSION_KEY, "true");
-    return true;
+export const adminLogin = (username: string, password: string): AdminSession | null => {
+  const users = getAdminUsers();
+  const user = users.find(u => u.username === username && u.password === password);
+  if (user) {
+    const session: AdminSession = { username: user.username, role: user.role, name: user.name };
+    localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session));
+    return session;
   }
-  return false;
+  return null;
 };
 
 export const adminLogout = () => {
   localStorage.removeItem(ADMIN_SESSION_KEY);
+};
+
+// Role-based permissions
+export const canEdit = (role: AdminRole): boolean => {
+  return role === "super_admin" || role === "editor";
+};
+
+export const canDelete = (role: AdminRole): boolean => {
+  return role === "super_admin";
+};
+
+export const canManageSettings = (role: AdminRole): boolean => {
+  return role === "super_admin";
 };

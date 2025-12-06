@@ -3,6 +3,7 @@ import { Hero } from "@/components/Hero";
 import { About } from "@/components/About";
 import { Courses } from "@/components/Courses";
 import { Faculty } from "@/components/Faculty";
+import { NewsNotices } from "@/components/NewsNotices";
 import { Contact } from "@/components/Contact";
 import { Footer } from "@/components/Footer";
 import { Helmet } from "react-helmet-async";
@@ -24,6 +25,7 @@ const Index = () => {
           <About />
           <Courses />
           <Faculty />
+          <NewsNotices />
           <Contact />
         </main>
         <Footer />
