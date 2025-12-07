@@ -6,6 +6,7 @@ import { Faculty } from "@/components/Faculty";
 import { NewsNotices } from "@/components/NewsNotices";
 import { Contact } from "@/components/Contact";
 import { Footer } from "@/components/Footer";
+import { NoticePopup } from "@/components/NoticePopup";
 import { Helmet } from "react-helmet-async";
 
 const Index = () => {
@@ -29,6 +30,7 @@ const Index = () => {
           <Contact />
         </main>
         <Footer />
+        <NoticePopup />
       </div>
     </>
   );
