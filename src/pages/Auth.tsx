@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { GraduationCap, Mail, Lock, User, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { GraduationCap, Mail, Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,16 +12,11 @@ const passwordSchema = z.string().min(6, "Password must be at least 6 characters
 
 const Auth = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { user, signIn, signUp, resetPassword, loading } = useAuth();
+  const { user, signIn, resetPassword, loading } = useAuth();
   
-  const [mode, setMode] = useState<"login" | "signup" | "forgot">(
-    (searchParams.get("mode") as "login" | "signup" | "forgot") || "login"
-  );
+  const [mode, setMode] = useState<"login" | "forgot">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -43,22 +38,13 @@ const Auth = () => {
       }
     }
 
-    if (mode !== "forgot") {
+    if (mode === "login") {
       try {
         passwordSchema.parse(password);
       } catch (e) {
         if (e instanceof z.ZodError) {
           newErrors.password = e.errors[0].message;
         }
-      }
-    }
-
-    if (mode === "signup") {
-      if (!fullName.trim()) {
-        newErrors.fullName = "Full name is required";
-      }
-      if (password !== confirmPassword) {
-        newErrors.confirmPassword = "Passwords do not match";
       }
     }
 
@@ -85,23 +71,6 @@ const Auth = () => {
           });
         } else {
           toast({ title: "Welcome back!", description: "Login successful." });
-          navigate("/admin");
-        }
-      } else if (mode === "signup") {
-        const { error } = await signUp(email, password, fullName);
-        if (error) {
-          toast({
-            title: "Sign Up Failed",
-            description: error.message.includes("already registered")
-              ? "This email is already registered. Please log in instead."
-              : error.message,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Account Created",
-            description: "Welcome! You can now access the admin panel once an administrator assigns you a role.",
-          });
           navigate("/admin");
         }
       } else if (mode === "forgot") {
@@ -143,33 +112,13 @@ const Auth = () => {
               <GraduationCap className="w-8 h-8 text-primary-foreground" />
             </div>
             <h1 className="text-2xl font-heading font-bold text-foreground">
-              {mode === "login" && "Admin Login"}
-              {mode === "signup" && "Create Account"}
-              {mode === "forgot" && "Reset Password"}
+              {mode === "login" ? "Admin Login" : "Reset Password"}
             </h1>
             <p className="text-muted-foreground mt-2">Hans Educational Institute</p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === "signup" && (
-              <div>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder="Full Name"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="h-12 pl-10"
-                  />
-                </div>
-                {errors.fullName && (
-                  <p className="text-xs text-destructive mt-1">{errors.fullName}</p>
-                )}
-              </div>
-            )}
-
             <div>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -186,7 +135,7 @@ const Auth = () => {
               )}
             </div>
 
-            {mode !== "forgot" && (
+            {mode === "login" && (
               <div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -211,24 +160,6 @@ const Auth = () => {
               </div>
             )}
 
-            {mode === "signup" && (
-              <div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Confirm Password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="h-12 pl-10"
-                  />
-                </div>
-                {errors.confirmPassword && (
-                  <p className="text-xs text-destructive mt-1">{errors.confirmPassword}</p>
-                )}
-              </div>
-            )}
-
             {mode === "login" && (
               <div className="text-right">
                 <button
@@ -245,23 +176,17 @@ const Auth = () => {
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></span>
-                  {mode === "login" && "Signing in..."}
-                  {mode === "signup" && "Creating account..."}
-                  {mode === "forgot" && "Sending..."}
+                  {mode === "login" ? "Signing in..." : "Sending..."}
                 </span>
               ) : (
-                <>
-                  {mode === "login" && "Sign In"}
-                  {mode === "signup" && "Create Account"}
-                  {mode === "forgot" && "Send Reset Link"}
-                </>
+                <>{mode === "login" ? "Sign In" : "Send Reset Link"}</>
               )}
             </Button>
           </form>
 
           {/* Mode Toggle */}
           <div className="mt-6 text-center space-y-3">
-            {mode === "forgot" ? (
+            {mode === "forgot" && (
               <button
                 onClick={() => setMode("login")}
                 className="text-sm text-primary hover:underline flex items-center justify-center gap-1 mx-auto"
@@ -269,16 +194,6 @@ const Auth = () => {
                 <ArrowLeft className="w-4 h-4" />
                 Back to login
               </button>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
-                <button
-                  onClick={() => setMode(mode === "login" ? "signup" : "login")}
-                  className="text-primary hover:underline font-medium"
-                >
-                  {mode === "login" ? "Sign up" : "Sign in"}
-                </button>
-              </p>
             )}
 
             <Button variant="link" onClick={() => navigate("/")}>
