@@ -36,6 +36,7 @@ import {
   Inquiry,
   logActivity 
 } from "@/hooks/useSupabaseData";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +59,7 @@ const Admin = () => {
   const [showInquiryModal, setShowInquiryModal] = useState(false);
   const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editingFaculty, setEditingFaculty] = useState<Faculty | null>(null);
   const [editingNotice, setEditingNotice] = useState<Notice | null>(null);
@@ -92,6 +94,12 @@ const Admin = () => {
   const [passwordForm, setPasswordForm] = useState({
     newPassword: "",
     confirmPassword: "",
+  });
+  const [newUserForm, setNewUserForm] = useState({
+    email: "",
+    password: "",
+    fullName: "",
+    role: "viewer" as UserRole,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -311,8 +319,56 @@ const Admin = () => {
     if (error) {
       toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
     } else {
-      await logActivity("status_changed", { userId, isActive });
+    await logActivity("status_changed", { userId, isActive });
       toast({ title: isActive ? "User Activated" : "User Deactivated" });
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserForm.email || !newUserForm.password || !newUserForm.fullName) {
+      toast({ title: "Error", description: "All fields are required.", variant: "destructive" });
+      return;
+    }
+    if (newUserForm.password.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters.", variant: "destructive" });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            email: newUserForm.email,
+            password: newUserForm.password,
+            fullName: newUserForm.fullName,
+            role: newUserForm.role,
+          }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create user");
+      }
+      await logActivity("user_created", { email: newUserForm.email, role: newUserForm.role });
+      toast({ title: "User Created", description: `User ${newUserForm.email} has been created.` });
+      setShowAddUserModal(false);
+      setNewUserForm({ email: "", password: "", fullName: "", role: "viewer" });
+      // Refresh users list
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to create user";
+      toast({ title: "Error", description: message, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -665,7 +721,13 @@ const Admin = () => {
         {/* Users Tab */}
         {activeTab === "users" && canManageUsers && (
           <div>
-            <h2 className="text-2xl font-heading font-bold text-foreground mb-6">User Management</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-heading font-bold text-foreground">User Management</h2>
+              <Button onClick={() => setShowAddUserModal(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add User
+              </Button>
+            </div>
             {usersLoading ? (
               <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
             ) : (
@@ -901,6 +963,59 @@ const Admin = () => {
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="outline" className="flex-1" onClick={() => setShowPasswordModal(false)}>Cancel</Button>
                 <Button type="submit" className="flex-1" disabled={isSubmitting}>{isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Update Password"}</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add User Modal */}
+      {showAddUserModal && (
+        <div className="fixed inset-0 bg-foreground/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-heading font-bold text-foreground">Add New User</h3>
+              <button onClick={() => setShowAddUserModal(false)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <Input 
+                type="text" 
+                placeholder="Full Name" 
+                value={newUserForm.fullName} 
+                onChange={(e) => setNewUserForm({ ...newUserForm, fullName: e.target.value })} 
+                required 
+              />
+              <Input 
+                type="email" 
+                placeholder="Email Address" 
+                value={newUserForm.email} 
+                onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })} 
+                required 
+              />
+              <Input 
+                type="password" 
+                placeholder="Password (min 6 characters)" 
+                value={newUserForm.password} 
+                onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })} 
+                required 
+              />
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">Role</label>
+                <select 
+                  value={newUserForm.role} 
+                  onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value as UserRole })}
+                  className="w-full bg-background border border-input rounded-md px-3 h-10 text-sm"
+                >
+                  <option value="viewer">Viewer</option>
+                  <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setShowAddUserModal(false)}>Cancel</Button>
+                <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create User"}
+                </Button>
               </div>
             </form>
           </div>
