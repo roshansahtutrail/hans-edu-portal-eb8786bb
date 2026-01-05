@@ -106,35 +106,27 @@ const defaultCourses: Course[] = [
 const defaultFaculty: Faculty[] = [
   {
     id: "1",
-    name: "Dr. Priya Sharma",
-    designation: "Head of Computer Science",
-    qualification: "Ph.D. in Computer Science, IIT Delhi",
-    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop",
-    specialization: "Artificial Intelligence & Machine Learning"
+    name: "Mr. Rakesh Chaudhary",
+    designation: "Founder And CEO of Hans",
+    qualification: "Ph.D. in English",
+    image: "https://southzonedemo.netlify.app/101.JPG",
+    specialization: "Make the English understandable for everyone"
   },
   {
     id: "2",
-    name: "Prof. Rajesh Kumar",
-    designation: "Senior Faculty - Web Technologies",
-    qualification: "M.Tech in Software Engineering",
-    image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop",
-    specialization: "Full Stack Development & Cloud Computing"
+    name: "Mr. Kunal Jaiswal",
+    designation: "Co-founder of Hans",
+    qualification: "Bachelor and Master Degree in Science",
+    image: "https://southzonedemo.netlify.app/120.JPG",
+    specialization: "Make the science understandable for everyone"
   },
   {
     id: "3",
-    name: "Dr. Anita Desai",
-    designation: "Faculty - Data Science",
-    qualification: "Ph.D. in Statistics, ISI Kolkata",
-    image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop",
-    specialization: "Data Analytics & Business Intelligence"
-  },
-  {
-    id: "4",
-    name: "Mr. Vikram Singh",
-    designation: "Faculty - Digital Marketing",
-    qualification: "MBA, Google Certified Trainer",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
-    specialization: "SEO, SEM & Social Media Marketing"
+    name: "Mr. Santosh Chaudhary",
+    designation: "Professor of Mathematics",
+    qualification: "Ph.D. in Mathematics, Chennai",
+    image: "https://southzonedemo.netlify.app/santosh.jpg",
+    specialization: "Math Hunter"
   }
 ];
 

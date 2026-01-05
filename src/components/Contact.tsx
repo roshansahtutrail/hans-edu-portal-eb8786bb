@@ -10,22 +10,22 @@ const contactInfo = [
   {
     icon: MapPin,
     title: "Visit Us",
-    details: ["123 Education Street", "Knowledge Park, Delhi 110001"],
+    details: ["Radhemai-13, Birgunj", "(Near to South Zone Secondary School)"],
   },
   {
     icon: Phone,
     title: "Call Us",
-    details: ["+91 98765 43210", "+91 11 2345 6789"],
+    details: ["+977 986-4013064", "+977 980-7298581"],
   },
   {
     icon: Mail,
     title: "Email Us",
-    details: ["info@hanseducation.in", "admissions@hanseducation.in"],
+    details: ["hanseduinst@gmail.com"],
   },
   {
     icon: Clock,
     title: "Office Hours",
-    details: ["Mon - Sat: 9:00 AM - 6:00 PM", "Sunday: Closed"],
+    details: ["Sun - Fri: 9:00 AM - 6:00 PM", "Saturday: Closed"],
   },
 ];
 
@@ -174,14 +174,14 @@ export const Contact = () => {
             {/* Map Placeholder */}
             <div className="h-64 rounded-2xl overflow-hidden border border-border">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d224345.83923192776!2d77.06889754725782!3d28.52758200617607!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390cfd5b347eb62d%3A0x37205b715389640!2sDelhi!5e0!3m2!1sen!2sin!4v1635774831927!5m2!1sen!2sin"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3564.7!2d84.8776!3d27.0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sBirgunj%2C%20Nepal!5e0!3m2!1sen!2snp!4v1635774831927!5m2!1sen!2snp"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
                 allowFullScreen
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                title="Location Map"
+                title="Location Map - Birgunj, Nepal"
               />
             </div>
           </div>
