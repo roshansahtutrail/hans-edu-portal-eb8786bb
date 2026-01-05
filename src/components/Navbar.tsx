@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, GraduationCap, Home, Info, BookOpen, Users, Bell, Phone } from "lucide-react";
+import { Menu, X, Home, Info, BookOpen, Users, Bell, Phone } from "lucide-react";
+import hansLogo from "@/assets/hans_logo.jpg";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 
@@ -32,16 +33,18 @@ export const Navbar = () => {
       <div className="container-custom">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-md group-hover:shadow-glow transition-shadow duration-300">
-              <GraduationCap className="w-6 h-6 text-primary-foreground" />
-            </div>
+          <Link to="/" className="flex items-center gap-3 group">
+            <img 
+              src={hansLogo} 
+              alt="Hans Educational Institution" 
+              className="w-12 h-12 md:w-14 md:h-14 rounded-full object-cover shadow-md group-hover:shadow-glow transition-shadow duration-300"
+            />
             <div className="flex flex-col">
-              <span className="font-heading font-bold text-lg text-foreground leading-tight">
+              <span className="font-heading font-bold text-base md:text-lg text-foreground leading-tight">
                 Hans Educational
               </span>
               <span className="text-xs text-muted-foreground font-medium">
-                Institute
+                Institution Pvt. Ltd.
               </span>
             </div>
           </Link>
