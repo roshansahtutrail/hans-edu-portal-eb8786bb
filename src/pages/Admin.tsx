@@ -49,7 +49,7 @@ const Admin = () => {
   const { faculty, loading: facultyLoading, addFaculty, updateFaculty, deleteFaculty } = useFaculty();
   const { notices, loading: noticesLoading, addNotice, updateNotice, deleteNotice } = useNotices();
   const { inquiries, loading: inquiriesLoading, deleteInquiry, markAsRead } = useInquiries();
-  const { users, loading: usersLoading, updateUserRole, updateUserStatus } = useUserManagement();
+  const { users, loading: usersLoading, updateUserRole, updateUserStatus, deleteUser } = useUserManagement();
   
   const [activeTab, setActiveTab] = useState<Tab>("courses");
   
@@ -319,8 +319,26 @@ const Admin = () => {
     if (error) {
       toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
     } else {
-    await logActivity("status_changed", { userId, isActive });
+      await logActivity("status_changed", { userId, isActive });
       toast({ title: isActive ? "User Activated" : "User Deactivated" });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, email: string) => {
+    if (!confirm(`Are you sure you want to delete user ${email}? This action cannot be undone.`)) {
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const { error } = await deleteUser(userId);
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        await logActivity("user_deleted", { userId, email });
+        toast({ title: "User Deleted", description: `User ${email} has been deleted.` });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -770,14 +788,24 @@ const Admin = () => {
                         </td>
                         <td className="p-4 text-right">
                           {u.user_id !== user?.id && (
-                            <Button
-                              variant={u.is_active ? "destructive" : "default"}
-                              size="sm"
-                              onClick={() => handleStatusChange(u.user_id, !u.is_active)}
-                            >
-                              {u.is_active ? <XCircle className="w-3 h-3 mr-1" /> : <Check className="w-3 h-3 mr-1" />}
-                              {u.is_active ? "Deactivate" : "Activate"}
-                            </Button>
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                variant={u.is_active ? "destructive" : "default"}
+                                size="sm"
+                                onClick={() => handleStatusChange(u.user_id, !u.is_active)}
+                              >
+                                {u.is_active ? <XCircle className="w-3 h-3 mr-1" /> : <Check className="w-3 h-3 mr-1" />}
+                                {u.is_active ? "Deactivate" : "Activate"}
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteUser(u.user_id, u.email)}
+                                disabled={isSubmitting}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
                           )}
                         </td>
                       </tr>
