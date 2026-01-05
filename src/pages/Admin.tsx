@@ -10,6 +10,7 @@ import {
   Pencil,
   Trash2,
   Eye,
+  EyeOff,
   X,
   Bell,
   Settings,
@@ -102,6 +103,9 @@ const Admin = () => {
     role: "viewer" as UserRole,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showNewUserPassword, setShowNewUserPassword] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -986,8 +990,40 @@ const Admin = () => {
               <button onClick={() => setShowPasswordModal(false)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleUpdatePassword} className="space-y-4">
-              <Input type="password" placeholder="New Password" value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} required />
-              <Input type="password" placeholder="Confirm New Password" value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} required />
+              <div className="relative">
+                <Input 
+                  type={showNewPassword ? "text" : "password"} 
+                  placeholder="New Password" 
+                  value={passwordForm.newPassword} 
+                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} 
+                  className="pr-10"
+                  required 
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <div className="relative">
+                <Input 
+                  type={showConfirmPassword ? "text" : "password"} 
+                  placeholder="Confirm New Password" 
+                  value={passwordForm.confirmPassword} 
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} 
+                  className="pr-10"
+                  required 
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="outline" className="flex-1" onClick={() => setShowPasswordModal(false)}>Cancel</Button>
                 <Button type="submit" className="flex-1" disabled={isSubmitting}>{isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Update Password"}</Button>
@@ -1020,13 +1056,23 @@ const Admin = () => {
                 onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })} 
                 required 
               />
-              <Input 
-                type="password" 
-                placeholder="Password (min 6 characters)" 
-                value={newUserForm.password} 
-                onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })} 
-                required 
-              />
+              <div className="relative">
+                <Input 
+                  type={showNewUserPassword ? "text" : "password"} 
+                  placeholder="Password (min 6 characters)" 
+                  value={newUserForm.password} 
+                  onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })} 
+                  className="pr-10"
+                  required 
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewUserPassword(!showNewUserPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showNewUserPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">Role</label>
                 <select 
