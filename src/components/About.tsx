@@ -71,7 +71,7 @@ export const About = () => {
         <div className="mt-16 p-8 rounded-3xl gradient-primary">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
-              { value: "14+", label: "Years of Excellence" },
+              { value: "1000+", label: "Pass Out Students" },
               { value: "200+", label: "Expert Faculty" },
               { value: "50+", label: "Industry Partners" },
               { value: "25+", label: "Branches Nationwide" },

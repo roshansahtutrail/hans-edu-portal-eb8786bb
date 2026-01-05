@@ -3,7 +3,7 @@ import { Button } from "./ui/button";
 
 const stats = [
   { icon: BookOpen, value: "50+", label: "Courses" },
-  { icon: Users, value: "10,000+", label: "Students" },
+  { icon: Users, value: "5,000+", label: "Students" },
   { icon: Award, value: "95%", label: "Placement Rate" },
 ];
 
@@ -37,7 +37,7 @@ export const Hero = () => {
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-foreground/10 border border-primary-foreground/20 mb-8 animate-fade-up">
             <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
             <span className="text-sm font-medium text-primary-foreground">
-              Admissions Open for 2024-25
+              Admissions Open for 2082 B.S - 2083 B.S
             </span>
           </div>
 
