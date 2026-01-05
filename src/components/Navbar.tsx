@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, GraduationCap } from "lucide-react";
+import { Menu, X, GraduationCap, Home, Info, BookOpen, Users, Bell, Phone } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { href: "#home", label: "Home" },
-  { href: "#about", label: "About" },
-  { href: "#courses", label: "Courses" },
-  { href: "#faculty", label: "Faculty" },
-  { href: "#notices", label: "News & Notices" },
-  { href: "#contact", label: "Contact" },
+  { href: "#home", label: "Home", icon: Home },
+  { href: "#about", label: "About", icon: Info },
+  { href: "#courses", label: "Courses", icon: BookOpen },
+  { href: "#faculty", label: "Faculty", icon: Users },
+  { href: "#notices", label: "News & Notices", icon: Bell },
+  { href: "#contact", label: "Contact", icon: Phone },
 ];
 
 export const Navbar = () => {
@@ -52,8 +52,9 @@ export const Navbar = () => {
               <button
                 key={link.href}
                 onClick={() => handleNavClick(link.href)}
-                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors duration-200 rounded-lg hover:bg-primary-light"
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors duration-200 rounded-lg hover:bg-primary-light"
               >
+                <link.icon className="w-4 h-4" />
                 {link.label}
               </button>
             ))}
@@ -89,8 +90,9 @@ export const Navbar = () => {
               <button
                 key={link.href}
                 onClick={() => handleNavClick(link.href)}
-                className="px-4 py-3 text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary-light rounded-lg transition-colors text-left"
+                className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary-light rounded-lg transition-colors text-left"
               >
+                <link.icon className="w-4 h-4" />
                 {link.label}
               </button>
             ))}
