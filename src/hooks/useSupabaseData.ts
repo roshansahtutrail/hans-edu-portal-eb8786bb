@@ -374,7 +374,28 @@ export const useUserManagement = () => {
     return { error };
   };
 
-  return { users, loading, fetchUsers, updateUserRole, removeUserRole, updateUserStatus };
+  const deleteUser = async (userId: string) => {
+    const session = await supabase.auth.getSession();
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.data.session?.access_token}`,
+        },
+        body: JSON.stringify({ userId }),
+      }
+    );
+    const data = await response.json();
+    if (!response.ok) {
+      return { error: new Error(data.error || "Failed to delete user") };
+    }
+    await fetchUsers();
+    return { error: null };
+  };
+
+  return { users, loading, fetchUsers, updateUserRole, removeUserRole, updateUserStatus, deleteUser };
 };
 
 // Activity logging

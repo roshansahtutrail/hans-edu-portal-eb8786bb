@@ -1,1 +1,10 @@
 project_id = "qmauguxwkwinxdvnwczb"
+
+[functions.create-user]
+verify_jwt = false
+
+[functions.delete-user]
+verify_jwt = false
+
+[functions.seed-admin]
+verify_jwt = false
