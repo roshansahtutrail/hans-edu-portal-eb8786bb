@@ -1,5 +1,6 @@
-import { GraduationCap, Facebook, Twitter, Instagram, Linkedin, Youtube } from "lucide-react";
+import { Facebook, Twitter, Instagram, Linkedin, Youtube } from "lucide-react";
 import { Link } from "react-router-dom";
+import hansLogo from "@/assets/hans_logo.jpg";
 
 const quickLinks = [
   { label: "About Us", href: "#about" },
@@ -36,16 +37,18 @@ export const Footer = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="lg:col-span-1">
-            <Link to="/" className="flex items-center gap-2 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                <GraduationCap className="w-6 h-6 text-primary-foreground" />
-              </div>
+            <Link to="/" className="flex items-center gap-3 mb-6">
+              <img 
+                src={hansLogo} 
+                alt="Hans Educational Institution" 
+                className="w-12 h-12 rounded-full object-cover"
+              />
               <div className="flex flex-col">
                 <span className="font-heading font-bold text-lg leading-tight">
                   Hans Educational
                 </span>
                 <span className="text-xs text-primary-foreground/70">
-                  Institute
+                  Institution Pvt. Ltd.
                 </span>
               </div>
             </Link>
