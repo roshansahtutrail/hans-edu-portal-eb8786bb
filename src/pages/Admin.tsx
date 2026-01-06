@@ -31,17 +31,19 @@ import {
   useNotices, 
   useInquiries, 
   useUserManagement,
+  useFounderMessage,
   Course,
   Faculty,
   Notice,
   Inquiry,
+  FounderMessage,
   logActivity 
 } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-type Tab = "courses" | "faculty" | "inquiries" | "notices" | "users" | "settings";
+type Tab = "courses" | "faculty" | "inquiries" | "notices" | "founder" | "users" | "settings";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -50,6 +52,7 @@ const Admin = () => {
   const { faculty, loading: facultyLoading, addFaculty, updateFaculty, deleteFaculty } = useFaculty();
   const { notices, loading: noticesLoading, addNotice, updateNotice, deleteNotice } = useNotices();
   const { inquiries, loading: inquiriesLoading, deleteInquiry, markAsRead } = useInquiries();
+  const { founderMessage, loading: founderLoading, saveFounderMessage, updateFounderMessage } = useFounderMessage();
   const { users, loading: usersLoading, updateUserRole, updateUserStatus, deleteUser } = useUserManagement();
   
   const [activeTab, setActiveTab] = useState<Tab>("courses");
@@ -90,6 +93,14 @@ const Admin = () => {
     type: "notice" as string,
     priority: "regular" as "urgent" | "important" | "regular",
     show_as_popup: false,
+    is_active: true,
+    image: "",
+  });
+  const [founderForm, setFounderForm] = useState({
+    name: "",
+    designation: "",
+    message: "",
+    image: "",
     is_active: true,
   });
   const [passwordForm, setPasswordForm] = useState({
@@ -246,10 +257,11 @@ const Admin = () => {
         priority: notice.priority,
         show_as_popup: notice.show_as_popup,
         is_active: notice.is_active,
+        image: notice.image || "",
       });
     } else {
       setEditingNotice(null);
-      setNoticeForm({ title: "", content: "", type: "notice", priority: "regular", show_as_popup: false, is_active: true });
+      setNoticeForm({ title: "", content: "", type: "notice", priority: "regular", show_as_popup: false, is_active: true, image: "" });
     }
     setShowNoticeModal(true);
   };
@@ -258,12 +270,16 @@ const Admin = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      const noticeData = {
+        ...noticeForm,
+        image: noticeForm.image || null,
+      };
       if (editingNotice) {
-        await updateNotice(editingNotice.id, noticeForm);
+        await updateNotice(editingNotice.id, noticeData);
         await logActivity("notice_updated", { noticeId: editingNotice.id, title: noticeForm.title });
         toast({ title: "Notice Updated" });
       } else {
-        await addNotice(noticeForm);
+        await addNotice(noticeData);
         await logActivity("notice_added", { title: noticeForm.title });
         toast({ title: "Notice Added" });
       }
@@ -272,6 +288,42 @@ const Admin = () => {
       setIsSubmitting(false);
     }
   };
+
+  // Founder message handlers
+  useEffect(() => {
+    if (founderMessage) {
+      setFounderForm({
+        name: founderMessage.name,
+        designation: founderMessage.designation,
+        message: founderMessage.message,
+        image: founderMessage.image || "",
+        is_active: founderMessage.is_active,
+      });
+    }
+  }, [founderMessage]);
+
+  const handleSaveFounder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const founderData = {
+        ...founderForm,
+        image: founderForm.image || null,
+      };
+      if (founderMessage) {
+        await updateFounderMessage(founderMessage.id, founderData);
+        await logActivity("founder_message_updated");
+        toast({ title: "Founder Message Updated" });
+      } else {
+        await saveFounderMessage(founderData);
+        await logActivity("founder_message_added");
+        toast({ title: "Founder Message Added" });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
 
   const handleDeleteNotice = async (id: string) => {
     if (confirm("Are you sure you want to delete this notice?")) {
@@ -502,6 +554,7 @@ const Admin = () => {
             { id: "faculty" as Tab, label: "Faculty", icon: Users, count: faculty.length },
             { id: "notices" as Tab, label: "News & Notices", icon: Bell, count: notices.length },
             { id: "inquiries" as Tab, label: "Inquiries", icon: MessageSquare, count: inquiries.length },
+            { id: "founder" as Tab, label: "Founder", icon: Shield, count: founderMessage ? 1 : 0 },
             ...(canManageUsers ? [{ id: "users" as Tab, label: "Users", icon: UserCog, count: users.length }] : []),
             { id: "settings" as Tab, label: "Settings", icon: Settings, count: 0 },
           ].map((tab) => (
@@ -740,6 +793,73 @@ const Admin = () => {
           </div>
         )}
 
+        {/* Founder Tab */}
+        {activeTab === "founder" && canEdit && (
+          <div>
+            <h2 className="text-2xl font-heading font-bold text-foreground mb-6">Our Founder Says</h2>
+            <div className="bg-card rounded-xl border border-border p-6 max-w-2xl">
+              {founderLoading ? (
+                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+              ) : (
+                <form onSubmit={handleSaveFounder} className="space-y-4">
+                  <div>
+                    <label className="text-sm text-foreground mb-2 block">Founder Name *</label>
+                    <Input 
+                      placeholder="Enter founder name" 
+                      value={founderForm.name} 
+                      onChange={(e) => setFounderForm({ ...founderForm, name: e.target.value })} 
+                      required 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-foreground mb-2 block">Designation *</label>
+                    <Input 
+                      placeholder="e.g., Founder & CEO" 
+                      value={founderForm.designation} 
+                      onChange={(e) => setFounderForm({ ...founderForm, designation: e.target.value })} 
+                      required 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-foreground mb-2 block">Message *</label>
+                    <Textarea 
+                      placeholder="Enter founder's message" 
+                      value={founderForm.message} 
+                      onChange={(e) => setFounderForm({ ...founderForm, message: e.target.value })} 
+                      rows={6} 
+                      required 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-foreground mb-2 block">Image URL</label>
+                    <Input 
+                      placeholder="https://example.com/founder-image.jpg" 
+                      value={founderForm.image} 
+                      onChange={(e) => setFounderForm({ ...founderForm, image: e.target.value })} 
+                    />
+                    {founderForm.image && (
+                      <img src={founderForm.image} alt="Preview" className="mt-2 w-32 h-32 object-cover rounded-lg" />
+                    )}
+                  </div>
+                  <label className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      checked={founderForm.is_active} 
+                      onChange={(e) => setFounderForm({ ...founderForm, is_active: e.target.checked })} 
+                      className="accent-primary" 
+                    />
+                    <span className="text-sm text-foreground">Show on website</span>
+                  </label>
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    {founderMessage ? "Update Founder Message" : "Save Founder Message"}
+                  </Button>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Users Tab */}
         {activeTab === "users" && canManageUsers && (
           <div>
@@ -948,6 +1068,13 @@ const Admin = () => {
                   <option value="important">Important</option>
                   <option value="urgent">Urgent</option>
                 </select>
+              </div>
+              <div>
+                <label className="text-sm text-foreground mb-2 block">Image URL (optional)</label>
+                <Input placeholder="https://example.com/image.jpg" value={noticeForm.image} onChange={(e) => setNoticeForm({ ...noticeForm, image: e.target.value })} />
+                {noticeForm.image && (
+                  <img src={noticeForm.image} alt="Preview" className="mt-2 w-full h-32 object-cover rounded-lg" />
+                )}
               </div>
               <label className="flex items-center gap-2"><input type="checkbox" checked={noticeForm.show_as_popup} onChange={(e) => setNoticeForm({ ...noticeForm, show_as_popup: e.target.checked })} className="accent-primary" /><span className="text-sm text-foreground">Show as popup on landing page</span></label>
               <label className="flex items-center gap-2"><input type="checkbox" checked={noticeForm.is_active} onChange={(e) => setNoticeForm({ ...noticeForm, is_active: e.target.checked })} className="accent-primary" /><span className="text-sm text-foreground">Active</span></label>

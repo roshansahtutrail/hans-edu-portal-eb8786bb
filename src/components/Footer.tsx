@@ -154,6 +154,11 @@ export const Footer = () => {
               </a>
             </div>
           </div>
+          <div className="text-center mt-4 pt-4 border-t border-primary-foreground/10">
+            <p className="text-primary-foreground/50 text-xs">
+              Developed by <span className="text-primary font-medium">Raushan Kumar</span>
+            </p>
+          </div>
         </div>
       </div>
     </footer>
