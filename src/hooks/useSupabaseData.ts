@@ -36,6 +36,7 @@ export interface Notice {
   priority: "urgent" | "important" | "regular";
   show_as_popup: boolean;
   is_active: boolean;
+  image: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -63,6 +64,17 @@ export interface Profile {
 
 export interface UserWithRole extends Profile {
   role: "super_admin" | "admin" | "viewer" | null;
+}
+
+export interface FounderMessage {
+  id: string;
+  name: string;
+  designation: string;
+  message: string;
+  image: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // Hook for courses
@@ -290,6 +302,60 @@ export const useInquiries = () => {
   };
 
   return { inquiries, loading, fetchInquiries, addInquiry, deleteInquiry, markAsRead };
+};
+
+// Hook for founder message
+export const useFounderMessage = () => {
+  const [founderMessage, setFounderMessage] = useState<FounderMessage | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchFounderMessage = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("founder_message")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    
+    if (!error && data) {
+      setFounderMessage(data as FounderMessage);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchFounderMessage();
+  }, [fetchFounderMessage]);
+
+  const saveFounderMessage = async (message: Omit<FounderMessage, "id" | "created_at" | "updated_at">) => {
+    // Delete existing and insert new (only one message at a time)
+    await supabase.from("founder_message").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    const { data, error } = await supabase
+      .from("founder_message")
+      .insert(message)
+      .select()
+      .single();
+    if (!error) {
+      await fetchFounderMessage();
+    }
+    return { data, error };
+  };
+
+  const updateFounderMessage = async (id: string, message: Partial<FounderMessage>) => {
+    const { data, error } = await supabase
+      .from("founder_message")
+      .update(message)
+      .eq("id", id)
+      .select()
+      .single();
+    if (!error) {
+      await fetchFounderMessage();
+    }
+    return { data, error };
+  };
+
+  return { founderMessage, loading, fetchFounderMessage, saveFounderMessage, updateFounderMessage };
 };
 
 // Hook for user management (super admin only)

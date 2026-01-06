@@ -89,6 +89,39 @@ export type Database = {
         }
         Relationships: []
       }
+      founder_message: {
+        Row: {
+          created_at: string
+          designation: string
+          id: string
+          image: string | null
+          is_active: boolean
+          message: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          designation: string
+          id?: string
+          image?: string | null
+          is_active?: boolean
+          message: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          designation?: string
+          id?: string
+          image?: string | null
+          is_active?: boolean
+          message?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inquiries: {
         Row: {
           created_at: string
@@ -127,6 +160,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          image: string | null
           is_active: boolean
           priority: Database["public"]["Enums"]["notice_priority"]
           show_as_popup: boolean
@@ -138,6 +172,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          image?: string | null
           is_active?: boolean
           priority?: Database["public"]["Enums"]["notice_priority"]
           show_as_popup?: boolean
@@ -149,6 +184,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          image?: string | null
           is_active?: boolean
           priority?: Database["public"]["Enums"]["notice_priority"]
           show_as_popup?: boolean
