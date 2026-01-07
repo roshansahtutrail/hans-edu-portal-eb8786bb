@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string
+          display_order: number | null
           duration: string
           id: string
           image: string | null
@@ -30,6 +31,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description: string
+          display_order?: number | null
           duration: string
           id?: string
           image?: string | null
@@ -42,6 +44,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string
+          display_order?: number | null
           duration?: string
           id?: string
           image?: string | null
@@ -57,6 +60,7 @@ export type Database = {
         Row: {
           created_at: string
           designation: string
+          display_order: number | null
           id: string
           image: string | null
           is_active: boolean
@@ -68,6 +72,7 @@ export type Database = {
         Insert: {
           created_at?: string
           designation: string
+          display_order?: number | null
           id?: string
           image?: string | null
           is_active?: boolean
@@ -79,6 +84,7 @@ export type Database = {
         Update: {
           created_at?: string
           designation?: string
+          display_order?: number | null
           id?: string
           image?: string | null
           is_active?: boolean
@@ -93,6 +99,7 @@ export type Database = {
         Row: {
           created_at: string
           designation: string
+          display_order: number | null
           id: string
           image: string | null
           is_active: boolean
@@ -103,6 +110,7 @@ export type Database = {
         Insert: {
           created_at?: string
           designation: string
+          display_order?: number | null
           id?: string
           image?: string | null
           is_active?: boolean
@@ -113,6 +121,7 @@ export type Database = {
         Update: {
           created_at?: string
           designation?: string
+          display_order?: number | null
           id?: string
           image?: string | null
           is_active?: boolean

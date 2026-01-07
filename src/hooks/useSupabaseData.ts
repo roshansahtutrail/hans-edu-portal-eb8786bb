@@ -12,6 +12,7 @@ export interface Course {
   image: string | null;
   price: string | null;
   is_active: boolean;
+  display_order: number;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +25,7 @@ export interface Faculty {
   specialization: string;
   image: string | null;
   is_active: boolean;
+  display_order: number;
   created_at: string;
   updated_at: string;
 }
@@ -73,6 +75,7 @@ export interface FounderMessage {
   message: string;
   image: string | null;
   is_active: boolean;
+  display_order: number;
   created_at: string;
   updated_at: string;
 }
@@ -87,7 +90,7 @@ export const useCourses = () => {
     const { data, error } = await supabase
       .from("courses")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("display_order", { ascending: true });
     
     if (!error && data) {
       setCourses(data);
@@ -145,7 +148,7 @@ export const useFaculty = () => {
     const { data, error } = await supabase
       .from("faculty")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("display_order", { ascending: true });
     
     if (!error && data) {
       setFaculty(data);
@@ -304,58 +307,76 @@ export const useInquiries = () => {
   return { inquiries, loading, fetchInquiries, addInquiry, deleteInquiry, markAsRead };
 };
 
-// Hook for founder message
-export const useFounderMessage = () => {
-  const [founderMessage, setFounderMessage] = useState<FounderMessage | null>(null);
+// Hook for founder messages (multiple founders)
+export const useFounders = () => {
+  const [founders, setFounders] = useState<FounderMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchFounderMessage = useCallback(async () => {
+  const fetchFounders = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("founder_message")
       .select("*")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .order("display_order", { ascending: true });
     
     if (!error && data) {
-      setFounderMessage(data as FounderMessage);
+      setFounders(data as FounderMessage[]);
     }
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchFounderMessage();
-  }, [fetchFounderMessage]);
+    fetchFounders();
+  }, [fetchFounders]);
 
-  const saveFounderMessage = async (message: Omit<FounderMessage, "id" | "created_at" | "updated_at">) => {
-    // Delete existing and insert new (only one message at a time)
-    await supabase.from("founder_message").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  const addFounder = async (founder: Omit<FounderMessage, "id" | "created_at" | "updated_at">) => {
     const { data, error } = await supabase
       .from("founder_message")
-      .insert(message)
+      .insert(founder)
       .select()
       .single();
     if (!error) {
-      await fetchFounderMessage();
+      await fetchFounders();
     }
     return { data, error };
   };
 
-  const updateFounderMessage = async (id: string, message: Partial<FounderMessage>) => {
+  const updateFounder = async (id: string, founder: Partial<FounderMessage>) => {
     const { data, error } = await supabase
       .from("founder_message")
-      .update(message)
+      .update(founder)
       .eq("id", id)
       .select()
       .single();
     if (!error) {
-      await fetchFounderMessage();
+      await fetchFounders();
     }
     return { data, error };
   };
 
-  return { founderMessage, loading, fetchFounderMessage, saveFounderMessage, updateFounderMessage };
+  const deleteFounder = async (id: string) => {
+    const { error } = await supabase.from("founder_message").delete().eq("id", id);
+    if (!error) {
+      await fetchFounders();
+    }
+    return { error };
+  };
+
+  return { founders, loading, fetchFounders, addFounder, updateFounder, deleteFounder };
+};
+
+// Keep old hook for backward compatibility
+export const useFounderMessage = () => {
+  const { founders, loading, addFounder, updateFounder } = useFounders();
+  const founderMessage = founders.length > 0 ? founders[0] : null;
+  
+  return { 
+    founderMessage, 
+    loading, 
+    fetchFounderMessage: () => {}, 
+    saveFounderMessage: addFounder, 
+    updateFounderMessage: updateFounder 
+  };
 };
 
 // Hook for user management (super admin only)

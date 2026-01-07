@@ -78,6 +78,7 @@ const Admin = () => {
     image: "",
     price: "",
     is_active: true,
+    display_order: 0,
   });
   const [facultyForm, setFacultyForm] = useState({
     name: "",
@@ -86,6 +87,7 @@ const Admin = () => {
     image: "",
     specialization: "",
     is_active: true,
+    display_order: 0,
   });
   const [noticeForm, setNoticeForm] = useState({
     title: "",
@@ -102,6 +104,7 @@ const Admin = () => {
     message: "",
     image: "",
     is_active: true,
+    display_order: 0,
   });
   const [passwordForm, setPasswordForm] = useState({
     newPassword: "",
@@ -148,10 +151,11 @@ const Admin = () => {
         image: course.image || "",
         price: course.price || "",
         is_active: course.is_active,
+        display_order: course.display_order || 0,
       });
     } else {
       setEditingCourse(null);
-      setCourseForm({ title: "", description: "", duration: "", level: "Beginner", image: "", price: "", is_active: true });
+      setCourseForm({ title: "", description: "", duration: "", level: "Beginner", image: "", price: "", is_active: true, display_order: 0 });
     }
     setShowCourseModal(true);
   };
@@ -194,10 +198,11 @@ const Admin = () => {
         image: member.image || "",
         specialization: member.specialization,
         is_active: member.is_active,
+        display_order: member.display_order || 0,
       });
     } else {
       setEditingFaculty(null);
-      setFacultyForm({ name: "", designation: "", qualification: "", image: "", specialization: "", is_active: true });
+      setFacultyForm({ name: "", designation: "", qualification: "", image: "", specialization: "", is_active: true, display_order: 0 });
     }
     setShowFacultyModal(true);
   };
@@ -298,6 +303,7 @@ const Admin = () => {
         message: founderMessage.message,
         image: founderMessage.image || "",
         is_active: founderMessage.is_active,
+        display_order: founderMessage.display_order || 0,
       });
     }
   }, [founderMessage]);
