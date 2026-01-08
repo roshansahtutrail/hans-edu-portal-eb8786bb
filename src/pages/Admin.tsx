@@ -3,9 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { 
   GraduationCap, 
   LogOut, 
-  BookOpen, 
-  Users, 
-  MessageSquare,
   Plus,
   Pencil,
   Trash2,
@@ -13,13 +10,12 @@ import {
   EyeOff,
   X,
   Bell,
-  Settings,
-  Lock,
   Shield,
-  UserCog,
   Check,
   XCircle,
-  Loader2
+  Loader2,
+  Lock,
+  MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +27,7 @@ import {
   useNotices, 
   useInquiries, 
   useUserManagement,
-  useFounderMessage,
+  useFounders,
   Course,
   Faculty,
   Notice,
@@ -42,8 +38,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-
-type Tab = "courses" | "faculty" | "inquiries" | "notices" | "founder" | "users" | "settings";
+import { AdminSidebar, Tab } from "@/components/admin/AdminSidebar";
+import { EditUserModal } from "@/components/admin/EditUserModal";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -52,7 +48,7 @@ const Admin = () => {
   const { faculty, loading: facultyLoading, addFaculty, updateFaculty, deleteFaculty } = useFaculty();
   const { notices, loading: noticesLoading, addNotice, updateNotice, deleteNotice } = useNotices();
   const { inquiries, loading: inquiriesLoading, deleteInquiry, markAsRead } = useInquiries();
-  const { founderMessage, loading: founderLoading, saveFounderMessage, updateFounderMessage } = useFounderMessage();
+  const { founders, loading: foundersLoading, addFounder, updateFounder, deleteFounder } = useFounders();
   const { users, loading: usersLoading, updateUserRole, updateUserStatus, deleteUser } = useUserManagement();
   
   const [activeTab, setActiveTab] = useState<Tab>("courses");
@@ -64,9 +60,13 @@ const Admin = () => {
   const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showFounderModal, setShowFounderModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editingFaculty, setEditingFaculty] = useState<Faculty | null>(null);
   const [editingNotice, setEditingNotice] = useState<Notice | null>(null);
+  const [editingFounder, setEditingFounder] = useState<FounderMessage | null>(null);
+  const [editingUser, setEditingUser] = useState<typeof users[number] | null>(null);
   const [viewingInquiry, setViewingInquiry] = useState<Inquiry | null>(null);
 
   // Form states
@@ -294,19 +294,24 @@ const Admin = () => {
     }
   };
 
-  // Founder message handlers
-  useEffect(() => {
-    if (founderMessage) {
+  // Founder handlers
+  const openFounderModal = (founder?: FounderMessage) => {
+    if (founder) {
+      setEditingFounder(founder);
       setFounderForm({
-        name: founderMessage.name,
-        designation: founderMessage.designation,
-        message: founderMessage.message,
-        image: founderMessage.image || "",
-        is_active: founderMessage.is_active,
-        display_order: founderMessage.display_order || 0,
+        name: founder.name,
+        designation: founder.designation,
+        message: founder.message,
+        image: founder.image || "",
+        is_active: founder.is_active,
+        display_order: founder.display_order || 0,
       });
+    } else {
+      setEditingFounder(null);
+      setFounderForm({ name: "", designation: "", message: "", image: "", is_active: true, display_order: 0 });
     }
-  }, [founderMessage]);
+    setShowFounderModal(true);
+  };
 
   const handleSaveFounder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -316,21 +321,34 @@ const Admin = () => {
         ...founderForm,
         image: founderForm.image || null,
       };
-      if (founderMessage) {
-        await updateFounderMessage(founderMessage.id, founderData);
-        await logActivity("founder_message_updated");
-        toast({ title: "Founder Message Updated" });
+      if (editingFounder) {
+        await updateFounder(editingFounder.id, founderData);
+        await logActivity("founder_updated", { founderId: editingFounder.id });
+        toast({ title: "Founder Updated" });
       } else {
-        await saveFounderMessage(founderData);
-        await logActivity("founder_message_added");
-        toast({ title: "Founder Message Added" });
+        await addFounder(founderData);
+        await logActivity("founder_added", { name: founderForm.name });
+        toast({ title: "Founder Added" });
       }
+      setShowFounderModal(false);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleDeleteFounder = async (id: string) => {
+    if (confirm("Are you sure you want to delete this founder?")) {
+      await deleteFounder(id);
+      await logActivity("founder_deleted", { founderId: id });
+      toast({ title: "Founder Deleted" });
+    }
+  };
 
+  // Edit user handler
+  const openEditUserModal = (u: typeof users[number]) => {
+    setEditingUser(u);
+    setShowEditUserModal(true);
+  };
   const handleDeleteNotice = async (id: string) => {
     if (confirm("Are you sure you want to delete this notice?")) {
       await deleteNotice(id);
@@ -536,9 +554,6 @@ const Admin = () => {
               </div>
             </div>
             <div className="flex items-center gap-2 md:gap-4">
-              <Button variant="outline" size="sm" onClick={() => navigate("/")}>
-                View Website
-              </Button>
               <Button variant="outline" size="sm" onClick={() => setShowPasswordModal(true)}>
                 <Lock className="w-4 h-4 md:mr-2" />
                 <span className="hidden md:inline">Change Password</span>
@@ -552,43 +567,25 @@ const Admin = () => {
         </div>
       </header>
 
-      <div className="container-custom py-8">
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8 bg-card p-2 rounded-xl border border-border overflow-x-auto">
-          {[
-            { id: "courses" as Tab, label: "Courses", icon: BookOpen, count: courses.length },
-            { id: "faculty" as Tab, label: "Faculty", icon: Users, count: faculty.length },
-            { id: "notices" as Tab, label: "News & Notices", icon: Bell, count: notices.length },
-            { id: "inquiries" as Tab, label: "Inquiries", icon: MessageSquare, count: inquiries.length },
-            { id: "founder" as Tab, label: "Founder", icon: Shield, count: founderMessage ? 1 : 0 },
-            ...(canManageUsers ? [{ id: "users" as Tab, label: "Users", icon: UserCog, count: users.length }] : []),
-            { id: "settings" as Tab, label: "Settings", icon: Settings, count: 0 },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap",
-                activeTab === tab.id
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              )}
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-              {tab.count > 0 && (
-                <span className={cn(
-                  "ml-1 text-xs px-2 py-0.5 rounded-full",
-                  activeTab === tab.id ? "bg-primary-foreground/20" : "bg-muted"
-                )}>
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+      <div className="flex">
+        {/* Sidebar */}
+        <AdminSidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          counts={{
+            courses: courses.length,
+            faculty: faculty.length,
+            notices: notices.length,
+            inquiries: inquiries.length,
+            founders: founders.length,
+            users: users.length,
+          }}
+          canManageUsers={canManageUsers}
+          onNavigateHome={() => navigate("/")}
+        />
 
-        {/* Courses Tab */}
+        {/* Main Content */}
+        <main className="flex-1 p-8">
         {activeTab === "courses" && (
           <div>
             <div className="flex justify-between items-center mb-6">
@@ -799,70 +796,55 @@ const Admin = () => {
           </div>
         )}
 
-        {/* Founder Tab */}
-        {activeTab === "founder" && canEdit && (
+        {/* Founders Tab */}
+        {activeTab === "founders" && (
           <div>
-            <h2 className="text-2xl font-heading font-bold text-foreground mb-6">Our Founder Says</h2>
-            <div className="bg-card rounded-xl border border-border p-6 max-w-2xl">
-              {founderLoading ? (
-                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-              ) : (
-                <form onSubmit={handleSaveFounder} className="space-y-4">
-                  <div>
-                    <label className="text-sm text-foreground mb-2 block">Founder Name *</label>
-                    <Input 
-                      placeholder="Enter founder name" 
-                      value={founderForm.name} 
-                      onChange={(e) => setFounderForm({ ...founderForm, name: e.target.value })} 
-                      required 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-foreground mb-2 block">Designation *</label>
-                    <Input 
-                      placeholder="e.g., Founder & CEO" 
-                      value={founderForm.designation} 
-                      onChange={(e) => setFounderForm({ ...founderForm, designation: e.target.value })} 
-                      required 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-foreground mb-2 block">Message *</label>
-                    <Textarea 
-                      placeholder="Enter founder's message" 
-                      value={founderForm.message} 
-                      onChange={(e) => setFounderForm({ ...founderForm, message: e.target.value })} 
-                      rows={6} 
-                      required 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-foreground mb-2 block">Image URL</label>
-                    <Input 
-                      placeholder="https://example.com/founder-image.jpg" 
-                      value={founderForm.image} 
-                      onChange={(e) => setFounderForm({ ...founderForm, image: e.target.value })} 
-                    />
-                    {founderForm.image && (
-                      <img src={founderForm.image} alt="Preview" className="mt-2 w-32 h-32 object-cover rounded-lg" />
-                    )}
-                  </div>
-                  <label className="flex items-center gap-2">
-                    <input 
-                      type="checkbox" 
-                      checked={founderForm.is_active} 
-                      onChange={(e) => setFounderForm({ ...founderForm, is_active: e.target.checked })} 
-                      className="accent-primary" 
-                    />
-                    <span className="text-sm text-foreground">Show on website</span>
-                  </label>
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                    {founderMessage ? "Update Founder Message" : "Save Founder Message"}
-                  </Button>
-                </form>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-heading font-bold text-foreground">Manage Founders</h2>
+              {canEdit && (
+                <Button onClick={() => openFounderModal()}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Founder
+                </Button>
               )}
             </div>
+            {foundersLoading ? (
+              <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+            ) : founders.length === 0 ? (
+              <div className="bg-card rounded-xl border border-border p-12 text-center">
+                <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No founders added yet.</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {founders.map((founder) => (
+                  <div key={founder.id} className={cn("bg-card rounded-xl border overflow-hidden", founder.is_active ? "border-border" : "border-destructive/30 opacity-60")}>
+                    <img src={founder.image || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop"} alt={founder.name} className="w-full h-48 object-cover" />
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-1">
+                        <h3 className="font-heading font-bold text-foreground">{founder.name}</h3>
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded">Order: {founder.display_order}</span>
+                      </div>
+                      <p className="text-sm text-primary font-medium mb-2">{founder.designation}</p>
+                      <p className="text-xs text-muted-foreground mb-3 line-clamp-3">{founder.message}</p>
+                      {!founder.is_active && <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">Inactive</span>}
+                      {canEdit && (
+                        <div className="flex gap-2 mt-3">
+                          <Button variant="outline" size="sm" className="flex-1" onClick={() => openFounderModal(founder)}>
+                            <Pencil className="w-3 h-3 mr-1" />Edit
+                          </Button>
+                          {canDelete && (
+                            <Button variant="destructive" size="sm" onClick={() => handleDeleteFounder(founder.id)}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -919,6 +901,13 @@ const Admin = () => {
                         <td className="p-4 text-right">
                           {u.user_id !== user?.id && (
                             <div className="flex gap-2 justify-end">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openEditUserModal(u)}
+                              >
+                                <Pencil className="w-3 h-3 mr-1" />Edit
+                              </Button>
                               <Button
                                 variant={u.is_active ? "destructive" : "default"}
                                 size="sm"
@@ -995,6 +984,7 @@ const Admin = () => {
             </div>
           </div>
         )}
+        </main>
       </div>
 
       {/* Course Modal */}
@@ -1016,8 +1006,11 @@ const Admin = () => {
                   <option value="Advanced">Advanced</option>
                 </select>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input placeholder="Price (e.g., ₹45,000)" value={courseForm.price} onChange={(e) => setCourseForm({ ...courseForm, price: e.target.value })} />
+                <Input type="number" placeholder="Display Order" value={courseForm.display_order} onChange={(e) => setCourseForm({ ...courseForm, display_order: parseInt(e.target.value) || 0 })} />
+              </div>
               <Input placeholder="Image URL" value={courseForm.image} onChange={(e) => setCourseForm({ ...courseForm, image: e.target.value })} />
-              <Input placeholder="Price (e.g., ₹45,000)" value={courseForm.price} onChange={(e) => setCourseForm({ ...courseForm, price: e.target.value })} />
               <label className="flex items-center gap-2"><input type="checkbox" checked={courseForm.is_active} onChange={(e) => setCourseForm({ ...courseForm, is_active: e.target.checked })} className="accent-primary" /><span className="text-sm text-foreground">Active</span></label>
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="outline" className="flex-1" onClick={() => setShowCourseModal(false)}>Cancel</Button>
@@ -1041,7 +1034,10 @@ const Admin = () => {
               <Input placeholder="Designation" value={facultyForm.designation} onChange={(e) => setFacultyForm({ ...facultyForm, designation: e.target.value })} required />
               <Input placeholder="Qualification" value={facultyForm.qualification} onChange={(e) => setFacultyForm({ ...facultyForm, qualification: e.target.value })} required />
               <Input placeholder="Specialization" value={facultyForm.specialization} onChange={(e) => setFacultyForm({ ...facultyForm, specialization: e.target.value })} required />
-              <Input placeholder="Image URL" value={facultyForm.image} onChange={(e) => setFacultyForm({ ...facultyForm, image: e.target.value })} />
+              <div className="grid grid-cols-2 gap-4">
+                <Input placeholder="Image URL" value={facultyForm.image} onChange={(e) => setFacultyForm({ ...facultyForm, image: e.target.value })} />
+                <Input type="number" placeholder="Display Order" value={facultyForm.display_order} onChange={(e) => setFacultyForm({ ...facultyForm, display_order: parseInt(e.target.value) || 0 })} />
+              </div>
               <label className="flex items-center gap-2"><input type="checkbox" checked={facultyForm.is_active} onChange={(e) => setFacultyForm({ ...facultyForm, is_active: e.target.checked })} className="accent-primary" /><span className="text-sm text-foreground">Active</span></label>
               <div className="flex gap-3 pt-4">
                 <Button type="button" variant="outline" className="flex-1" onClick={() => setShowFacultyModal(false)}>Cancel</Button>
@@ -1227,6 +1223,51 @@ const Admin = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Founder Modal */}
+      {showFounderModal && (
+        <div className="fixed inset-0 bg-foreground/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-heading font-bold text-foreground">{editingFounder ? "Edit Founder" : "Add Founder"}</h3>
+              <button onClick={() => setShowFounderModal(false)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleSaveFounder} className="space-y-4">
+              <Input placeholder="Founder Name" value={founderForm.name} onChange={(e) => setFounderForm({ ...founderForm, name: e.target.value })} required />
+              <Input placeholder="Designation (e.g., Founder & CEO)" value={founderForm.designation} onChange={(e) => setFounderForm({ ...founderForm, designation: e.target.value })} required />
+              <Textarea placeholder="Founder's Message" value={founderForm.message} onChange={(e) => setFounderForm({ ...founderForm, message: e.target.value })} rows={5} required />
+              <div className="grid grid-cols-2 gap-4">
+                <Input placeholder="Image URL" value={founderForm.image} onChange={(e) => setFounderForm({ ...founderForm, image: e.target.value })} />
+                <Input type="number" placeholder="Display Order" value={founderForm.display_order} onChange={(e) => setFounderForm({ ...founderForm, display_order: parseInt(e.target.value) || 0 })} />
+              </div>
+              {founderForm.image && (
+                <img src={founderForm.image} alt="Preview" className="w-24 h-24 object-cover rounded-lg" />
+              )}
+              <label className="flex items-center gap-2"><input type="checkbox" checked={founderForm.is_active} onChange={(e) => setFounderForm({ ...founderForm, is_active: e.target.checked })} className="accent-primary" /><span className="text-sm text-foreground">Active</span></label>
+              <div className="flex gap-3 pt-4">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setShowFounderModal(false)}>Cancel</Button>
+                <Button type="submit" className="flex-1" disabled={isSubmitting}>{isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : editingFounder ? "Update" : "Add"}</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditUserModal && editingUser && (
+        <EditUserModal
+          user={editingUser}
+          onClose={() => {
+            setShowEditUserModal(false);
+            setEditingUser(null);
+          }}
+          onUpdate={() => {
+            setShowEditUserModal(false);
+            setEditingUser(null);
+            window.location.reload();
+          }}
+        />
       )}
     </div>
   );
