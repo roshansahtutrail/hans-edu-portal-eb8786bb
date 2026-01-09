@@ -940,7 +940,60 @@ const Admin = () => {
         {activeTab === "settings" && (
           <div>
             <h2 className="text-2xl font-heading font-bold text-foreground mb-6">Settings</h2>
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Account Info */}
+              <div className="bg-card rounded-xl border border-border p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <GraduationCap className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-foreground">Account Info</h3>
+                    <p className="text-sm text-muted-foreground">Your account details</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Name</p>
+                    <p className="font-medium text-foreground">{authUser?.fullName || "N/A"}</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p className="font-medium text-foreground">{authUser?.email || user?.email}</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Role</p>
+                    <span className={cn("text-xs px-2 py-1 rounded-full font-medium", getRoleBadgeColor(authUser?.role || null))}>
+                      {getRoleLabel(authUser?.role || null)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Security */}
+              <div className="bg-card rounded-xl border border-border p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Lock className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-foreground">Security</h3>
+                    <p className="text-sm text-muted-foreground">Account security options</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <Button onClick={() => setShowPasswordModal(true)} className="w-full">
+                    <Lock className="w-4 h-4 mr-2" />
+                    Change Password
+                  </Button>
+                  <Button variant="outline" onClick={handleLogout} className="w-full text-destructive hover:text-destructive">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
+              </div>
+
+              {/* Role Permissions */}
               <div className="bg-card rounded-xl border border-border p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -966,20 +1019,85 @@ const Admin = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Quick Stats */}
               <div className="bg-card rounded-xl border border-border p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Lock className="w-5 h-5 text-primary" />
+                  <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                    <Bell className="w-5 h-5 text-accent" />
                   </div>
                   <div>
-                    <h3 className="font-heading font-bold text-foreground">Security</h3>
-                    <p className="text-sm text-muted-foreground">Account security options</p>
+                    <h3 className="font-heading font-bold text-foreground">Quick Stats</h3>
+                    <p className="text-sm text-muted-foreground">Content overview</p>
                   </div>
                 </div>
-                <Button onClick={() => setShowPasswordModal(true)} className="w-full">
-                  <Lock className="w-4 h-4 mr-2" />
-                  Change Password
-                </Button>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Total Courses</span>
+                    <span className="font-bold text-foreground">{courses.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Faculty Members</span>
+                    <span className="font-bold text-foreground">{faculty.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Active Notices</span>
+                    <span className="font-bold text-foreground">{notices.filter(n => n.is_active).length}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm text-muted-foreground">Unread Inquiries</span>
+                    <span className="font-bold text-primary">{inquiries.filter(i => !i.is_read).length}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Session Info */}
+              <div className="bg-card rounded-xl border border-border p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <Check className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-foreground">Session</h3>
+                    <p className="text-sm text-muted-foreground">Current session info</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Status</p>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                      <span className="font-medium text-green-600">Active</span>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">User ID</p>
+                    <p className="font-mono text-xs text-foreground truncate">{user?.id?.slice(0, 16)}...</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* System Info */}
+              <div className="bg-card rounded-xl border border-border p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <MessageSquare className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-foreground">System</h3>
+                    <p className="text-sm text-muted-foreground">Application info</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Version</p>
+                    <p className="font-medium text-foreground">1.0.0</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Last Updated</p>
+                    <p className="font-medium text-foreground">{new Date().toLocaleDateString()}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -3,7 +3,7 @@ import { MapPin, Phone, Mail, Clock, Send } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { addInquiry } from "@/lib/data";
+import { useInquiries } from "@/hooks/useSupabaseData";
 import { toast } from "@/hooks/use-toast";
 
 const contactInfo = [
@@ -30,6 +30,7 @@ const contactInfo = [
 ];
 
 export const Contact = () => {
+  const { addInquiry } = useInquiries();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -49,7 +50,13 @@ export const Contact = () => {
     setIsSubmitting(true);
 
     try {
-      addInquiry(formData);
+      await addInquiry({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || null,
+        subject: "Contact Form Inquiry",
+        message: formData.message,
+      });
       toast({
         title: "Message Sent Successfully!",
         description: "We'll get back to you within 24 hours.",
