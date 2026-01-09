@@ -485,6 +485,68 @@ export const useUserManagement = () => {
   return { users, loading, fetchUsers, updateUserRole, removeUserRole, updateUserStatus, deleteUser };
 };
 
+// Activity log interface
+export interface ActivityLog {
+  id: string;
+  user_id: string | null;
+  action: string;
+  details: unknown;
+  created_at: string;
+  user_email?: string;
+  user_name?: string;
+}
+
+// Hook for activity logs (admin only)
+export const useActivityLogs = () => {
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { authUser } = useAuth();
+
+  const fetchLogs = useCallback(async () => {
+    if (authUser?.role !== "super_admin" && authUser?.role !== "admin") {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("user_activity_log")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (!error && data) {
+      // Fetch user info for each log
+      const logsWithUsers: ActivityLog[] = await Promise.all(
+        data.map(async (log) => {
+          if (log.user_id) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("full_name, email")
+              .eq("user_id", log.user_id)
+              .maybeSingle();
+            
+            return {
+              ...log,
+              user_email: profile?.email || "Unknown",
+              user_name: profile?.full_name || "Unknown",
+            };
+          }
+          return { ...log, user_email: "System", user_name: "System" };
+        })
+      );
+      setLogs(logsWithUsers);
+    }
+    setLoading(false);
+  }, [authUser?.role]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  return { logs, loading, refetch: fetchLogs };
+};
+
 // Activity logging
 export const logActivity = async (action: string, details?: Record<string, unknown>) => {
   const { data: { user } } = await supabase.auth.getUser();
@@ -495,4 +557,30 @@ export const logActivity = async (action: string, details?: Record<string, unkno
       details: details ? JSON.parse(JSON.stringify(details)) : null,
     }]);
   }
+};
+
+// CSV Export utility
+export const exportInquiriesToCSV = (inquiries: Inquiry[]) => {
+  const headers = ["Name", "Email", "Phone", "Subject", "Message", "Status", "Date"];
+  const rows = inquiries.map(i => [
+    i.name,
+    i.email,
+    i.phone || "",
+    i.subject,
+    i.message.replace(/"/g, '""'), // Escape quotes
+    i.is_read ? "Read" : "Unread",
+    new Date(i.created_at).toLocaleString()
+  ]);
+
+  const csvContent = [
+    headers.join(","),
+    ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `inquiries_${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+  URL.revokeObjectURL(link.href);
 };

@@ -15,7 +15,9 @@ import {
   XCircle,
   Loader2,
   Lock,
-  MessageSquare
+  MessageSquare,
+  Download,
+  History
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,12 +30,14 @@ import {
   useInquiries, 
   useUserManagement,
   useFounders,
+  useActivityLogs,
   Course,
   Faculty,
   Notice,
   Inquiry,
   FounderMessage,
-  logActivity 
+  logActivity,
+  exportInquiriesToCSV
 } from "@/hooks/useSupabaseData";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -50,6 +54,7 @@ const Admin = () => {
   const { inquiries, loading: inquiriesLoading, deleteInquiry, markAsRead } = useInquiries();
   const { founders, loading: foundersLoading, addFounder, updateFounder, deleteFounder } = useFounders();
   const { users, loading: usersLoading, updateUserRole, updateUserStatus, deleteUser } = useUserManagement();
+  const { logs: activityLogs, loading: logsLoading } = useActivityLogs();
   
   const [activeTab, setActiveTab] = useState<Tab>("courses");
   
@@ -739,7 +744,15 @@ const Admin = () => {
         {/* Inquiries Tab */}
         {activeTab === "inquiries" && (
           <div>
-            <h2 className="text-2xl font-heading font-bold text-foreground mb-6">Contact Inquiries</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-heading font-bold text-foreground">Contact Inquiries</h2>
+              {inquiries.length > 0 && (
+                <Button variant="outline" onClick={() => exportInquiriesToCSV(inquiries)}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export CSV
+                </Button>
+              )}
+            </div>
             {inquiriesLoading ? (
               <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
             ) : inquiries.length === 0 ? (
@@ -1098,6 +1111,56 @@ const Admin = () => {
                     <p className="font-medium text-foreground">{new Date().toLocaleDateString()}</p>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Activity Log */}
+            <div className="col-span-full mt-6">
+              <div className="bg-card rounded-xl border border-border p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                    <History className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-foreground">Activity Log</h3>
+                    <p className="text-sm text-muted-foreground">Recent admin actions</p>
+                  </div>
+                </div>
+                {logsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  </div>
+                ) : activityLogs.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No activity recorded yet.</p>
+                ) : (
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
+                    {activityLogs.map((log) => (
+                      <div key={log.id} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-bold text-primary">
+                            {log.user_name?.charAt(0)?.toUpperCase() || "?"}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium text-sm text-foreground">{log.user_name}</span>
+                            <span className="text-xs px-2 py-0.5 bg-accent/10 text-accent rounded-full">
+                              {log.action.replace(/_/g, " ")}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {log.user_email} • {new Date(log.created_at).toLocaleString()}
+                          </p>
+                          {log.details && typeof log.details === 'object' && (
+                            <p className="text-xs text-muted-foreground mt-1 truncate">
+                              {JSON.stringify(log.details).slice(0, 80)}...
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
