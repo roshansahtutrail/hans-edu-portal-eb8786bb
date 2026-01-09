@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { toNepaliDateTime, toNepaliDateShort } from "@/lib/nepaliDate";
 
 // Types matching database schema
 export interface Course {
@@ -561,7 +562,7 @@ export const logActivity = async (action: string, details?: Record<string, unkno
 
 // CSV Export utility
 export const exportInquiriesToCSV = (inquiries: Inquiry[]) => {
-  const headers = ["Name", "Email", "Phone", "Subject", "Message", "Status", "Date"];
+  const headers = ["Name", "Email", "Phone", "Subject", "Message", "Status", "Date (BS)"];
   const rows = inquiries.map(i => [
     i.name,
     i.email,
@@ -569,7 +570,7 @@ export const exportInquiriesToCSV = (inquiries: Inquiry[]) => {
     i.subject,
     i.message.replace(/"/g, '""'), // Escape quotes
     i.is_read ? "Read" : "Unread",
-    new Date(i.created_at).toLocaleString()
+    toNepaliDateTime(i.created_at)
   ]);
 
   const csvContent = [
@@ -580,7 +581,7 @@ export const exportInquiriesToCSV = (inquiries: Inquiry[]) => {
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `inquiries_${new Date().toISOString().split('T')[0]}.csv`;
+  link.download = `inquiries_${toNepaliDateShort(new Date())}.csv`;
   link.click();
   URL.revokeObjectURL(link.href);
 };

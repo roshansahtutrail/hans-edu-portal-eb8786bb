@@ -42,6 +42,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { toNepaliDate, toNepaliDateTime } from "@/lib/nepaliDate";
 import { AdminSidebar, Tab } from "@/components/admin/AdminSidebar";
 import { EditUserModal } from "@/components/admin/EditUserModal";
 
@@ -721,7 +722,7 @@ const Admin = () => {
                     </div>
                     <h3 className="font-heading font-bold text-foreground mb-2 line-clamp-2">{notice.title}</h3>
                     <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{notice.content}</p>
-                    <p className="text-xs text-muted-foreground mb-3">{new Date(notice.created_at).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground mb-3">{toNepaliDate(notice.created_at)}</p>
                     {canEdit && (
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" className="flex-1" onClick={() => openNoticeModal(notice)}>
@@ -782,7 +783,7 @@ const Admin = () => {
                           </div>
                         </td>
                         <td className="p-4 text-muted-foreground hidden md:table-cell">{inquiry.subject}</td>
-                        <td className="p-4 text-muted-foreground hidden lg:table-cell">{new Date(inquiry.created_at).toLocaleDateString()}</td>
+                        <td className="p-4 text-muted-foreground hidden lg:table-cell">{toNepaliDate(inquiry.created_at)}</td>
                         <td className="p-4">
                           <span className={cn("text-xs px-2 py-1 rounded-full", inquiry.is_read ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary font-medium")}>
                             {inquiry.is_read ? "Read" : "New"}
@@ -1108,7 +1109,7 @@ const Admin = () => {
                   </div>
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <p className="text-xs text-muted-foreground">Last Updated</p>
-                    <p className="font-medium text-foreground">{new Date().toLocaleDateString()}</p>
+                    <p className="font-medium text-foreground">{toNepaliDate(new Date())}</p>
                   </div>
                 </div>
               </div>
@@ -1149,7 +1150,7 @@ const Admin = () => {
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {log.user_email} • {new Date(log.created_at).toLocaleString()}
+                            {log.user_email} • {toNepaliDateTime(log.created_at)}
                           </p>
                           {log.details && typeof log.details === 'object' && (
                             <p className="text-xs text-muted-foreground mt-1 truncate">
@@ -1284,7 +1285,7 @@ const Admin = () => {
               {viewingInquiry.phone && <div><p className="text-sm text-muted-foreground">Phone</p><p className="font-medium text-foreground">{viewingInquiry.phone}</p></div>}
               <div><p className="text-sm text-muted-foreground">Subject</p><p className="font-medium text-foreground">{viewingInquiry.subject}</p></div>
               <div><p className="text-sm text-muted-foreground">Message</p><p className="text-foreground">{viewingInquiry.message}</p></div>
-              <div><p className="text-sm text-muted-foreground">Date</p><p className="text-foreground">{new Date(viewingInquiry.created_at).toLocaleString()}</p></div>
+              <div><p className="text-sm text-muted-foreground">Date</p><p className="text-foreground">{toNepaliDateTime(viewingInquiry.created_at)}</p></div>
             </div>
             <Button className="w-full mt-6" onClick={() => setShowInquiryModal(false)}>Close</Button>
           </div>

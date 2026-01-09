@@ -3,6 +3,7 @@ import { Bell, Newspaper, AlertCircle, Calendar, AlertTriangle, ArrowRight, X } 
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { toNepaliDate } from "@/lib/nepaliDate";
 
 interface Notice {
   id: string;
@@ -165,11 +166,7 @@ export const NewsNotices = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Calendar className="w-3.5 h-3.5" />
-                          {new Date(notice.created_at).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
+                          {toNepaliDate(notice.created_at, 'YYYY MMMM DD')}
                         </div>
                         <Button
                           variant="ghost"
@@ -245,11 +242,7 @@ export const NewsNotices = () => {
               </h2>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
                 <Calendar className="w-4 h-4" />
-                {new Date(selectedNotice.created_at).toLocaleDateString("en-IN", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
+                {toNepaliDate(selectedNotice.created_at, 'YYYY MMMM DD')}
               </div>
               <div className="prose prose-sm max-w-none text-muted-foreground">
                 <p className="whitespace-pre-wrap">{selectedNotice.content}</p>
