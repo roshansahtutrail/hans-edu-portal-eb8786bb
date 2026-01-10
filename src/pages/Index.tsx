@@ -32,7 +32,7 @@ const Index = () => {
         // Add a minimum delay for smooth UX
         setTimeout(() => {
           setIsLoading(false);
-        }, 1500);
+        }, 3000);
       }
     };
 
