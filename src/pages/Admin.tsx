@@ -52,7 +52,7 @@ const Admin = () => {
   const { courses, loading: coursesLoading, addCourse, updateCourse, deleteCourse } = useCourses();
   const { faculty, loading: facultyLoading, addFaculty, updateFaculty, deleteFaculty } = useFaculty();
   const { notices, loading: noticesLoading, addNotice, updateNotice, deleteNotice } = useNotices();
-  const { inquiries, loading: inquiriesLoading, deleteInquiry, markAsRead } = useInquiries();
+  const { inquiries, loading: inquiriesLoading, deleteInquiry, markAsRead, fetchInquiries } = useInquiries();
   const { founders, loading: foundersLoading, addFounder, updateFounder, deleteFounder } = useFounders();
   const { users, loading: usersLoading, updateUserRole, updateUserStatus, deleteUser } = useUserManagement();
   const { logs: activityLogs, loading: logsLoading } = useActivityLogs();
@@ -747,12 +747,18 @@ const Admin = () => {
           <div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-heading font-bold text-foreground">Contact Inquiries</h2>
-              {inquiries.length > 0 && (
-                <Button variant="outline" onClick={() => exportInquiriesToCSV(inquiries)}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Export CSV
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={fetchInquiries}>
+                  <Loader2 className={cn("w-4 h-4 mr-2", inquiriesLoading && "animate-spin")} />
+                  Refresh
                 </Button>
-              )}
+                {inquiries.length > 0 && (
+                  <Button variant="outline" onClick={() => exportInquiriesToCSV(inquiries)}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Export CSV
+                  </Button>
+                )}
+              </div>
             </div>
             {inquiriesLoading ? (
               <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
