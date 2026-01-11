@@ -262,9 +262,9 @@ export const useInquiries = () => {
 
   const fetchInquiries = useCallback(async () => {
     setLoading(true);
-    // Check if user is authenticated before fetching (RLS requires admin role)
-    const { data: session } = await supabase.auth.getSession();
-    if (session?.session) {
+    try {
+      // Fetch inquiries - RLS will filter based on user role
+      // Admins will see all, non-admins will see nothing
       const { data, error } = await supabase
         .from("inquiries")
         .select("*")
@@ -272,23 +272,53 @@ export const useInquiries = () => {
       
       if (!error && data) {
         setInquiries(data);
+      } else if (error) {
+        console.log("Error fetching inquiries:", error.message);
+        setInquiries([]);
       }
+    } catch (err) {
+      console.error("Failed to fetch inquiries:", err);
+      setInquiries([]);
     }
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    // Fetch on mount
-    fetchInquiries();
-    
-    // Also listen for auth state changes and refetch when user logs in
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        fetchInquiries();
+    // Listen for auth state changes and fetch/refetch accordingly
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // Delay slightly to ensure session is fully established
+        setTimeout(() => fetchInquiries(), 100);
+      } else if (event === 'SIGNED_OUT') {
+        setInquiries([]);
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Initial fetch after a small delay to ensure auth state is ready
+    const timer = setTimeout(() => fetchInquiries(), 100);
+
+    // Subscribe to realtime changes for inquiries
+    const channel = supabase
+      .channel('inquiries-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'inquiries'
+        },
+        () => {
+          // Refetch all inquiries when any change occurs
+          fetchInquiries();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
   }, [fetchInquiries]);
 
   const addInquiry = async (inquiry: Omit<Inquiry, "id" | "created_at" | "is_read">) => {
