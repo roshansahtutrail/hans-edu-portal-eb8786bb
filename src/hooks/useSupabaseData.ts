@@ -262,22 +262,37 @@ export const useInquiries = () => {
 
   const fetchInquiries = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("inquiries")
-      .select("*")
-      .order("created_at", { ascending: false });
-    
-    if (!error && data) {
-      setInquiries(data);
+    // Check if user is authenticated before fetching (RLS requires admin role)
+    const { data: session } = await supabase.auth.getSession();
+    if (session?.session) {
+      const { data, error } = await supabase
+        .from("inquiries")
+        .select("*")
+        .order("created_at", { ascending: false });
+      
+      if (!error && data) {
+        setInquiries(data);
+      }
     }
     setLoading(false);
   }, []);
 
   useEffect(() => {
+    // Fetch on mount
     fetchInquiries();
+    
+    // Also listen for auth state changes and refetch when user logs in
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        fetchInquiries();
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [fetchInquiries]);
 
   const addInquiry = async (inquiry: Omit<Inquiry, "id" | "created_at" | "is_read">) => {
+    // Public users can insert inquiries (RLS allows this)
     const { data, error } = await supabase
       .from("inquiries")
       .insert({ ...inquiry, is_read: false })
