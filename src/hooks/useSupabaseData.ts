@@ -263,24 +263,42 @@ export const useInquiries = () => {
   const fetchInquiries = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch inquiries - RLS will filter based on user role
-      // Admins will see all, non-admins will see nothing
-      const { data, error } = await supabase
-        .from("inquiries")
-        .select("*")
-        .order("created_at", { ascending: false });
-      
-      if (!error && data) {
-        setInquiries(data);
-      } else if (error) {
-        console.log("Error fetching inquiries:", error.message);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      // If not logged in, don't try to load admin-only data.
+      if (!session?.access_token) {
         setInquiries([]);
+        return;
       }
+
+      // Prefer fetching via backend function (bypasses RLS + avoids direct table access issues)
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-inquiries`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      const payload = await res.json().catch(() => ({} as any));
+
+      if (!res.ok) {
+        console.log("Error fetching inquiries (function):", payload?.error || res.statusText);
+        setInquiries([]);
+        return;
+      }
+
+      setInquiries((payload?.inquiries ?? []) as Inquiry[]);
     } catch (err) {
       console.error("Failed to fetch inquiries:", err);
       setInquiries([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
